@@ -1,0 +1,235 @@
+parameters:
+  OwnerName:
+    type: String
+    description: Display name of the person the system serves.
+  OwnerEmail:
+    type: String
+    description: Verified naturali login email allowed to connect to the MCP server.
+
+resources:
+  Owner:
+    type: actor
+    properties:
+      name: { param: OwnerName }
+
+  Profile:
+    type: playbook
+    properties:
+      name: profile
+      description: Who the person is, for every network.
+      definition:
+        nodes:
+          - id: themes
+            title: Themes
+            kind: collect
+            inputs:
+              - name: themes
+                required: true
+                source: manual
+                description: "1 to 3 themes: name (the subject), angle (the person's own take), audience (who it is for)"
+                schema:
+                  type: array
+                  minItems: 1
+                  maxItems: 3
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [name, angle]
+                    properties:
+                      name: { type: string, minLength: 1 }
+                      angle: { type: string, minLength: 1 }
+                      audience: { type: string }
+          - id: themes_confirmed
+            title: Approved themes
+            kind: confirm
+            final: true
+            inputs:
+              - name: themes
+                required: true
+                schema: { type: array }
+                source: { node_id: themes, field: output.themes }
+
+  XGrowth:
+    type: playbook
+    properties:
+      name: x-growth
+      description: How the person grows on X.
+      definition:
+        upstreams:
+          - name: profile
+            playbook_id: { ref: Profile }
+        nodes:
+          # The runtime requires `inputs` on an upstream node, even empty.
+          - id: profile_themes
+            title: Profile themes
+            kind: upstream
+            inputs: []
+            upstream: { name: profile, node_id: themes_confirmed }
+          - id: themes
+            title: Themes on X
+            kind: collect
+            final: true
+            inputs:
+              - name: themes
+                required: true
+                schema: { type: array, minItems: 1, maxItems: 3 }
+                source: { node_id: profile_themes, field: output.themes }
+          - id: stage
+            title: Account stage
+            kind: collect
+            inputs:
+              - name: followers
+                required: true
+                source: manual
+                description: Total followers today
+                schema: { type: integer, minimum: 0 }
+              - name: weekly_hours
+                required: true
+                source: manual
+                description: Hours per week the person spends on X
+                schema: { type: number, exclusiveMinimum: 0 }
+          - id: cadence
+            title: Recommended cadence
+            kind: collect
+            inputs:
+              - name: followers
+                required: true
+                schema: { type: integer }
+                source: { node_id: stage, field: output.followers }
+              - name: weekly_hours
+                required: true
+                schema: { type: number }
+                source: { node_id: stage, field: output.weekly_hours }
+              - name: slots
+                required: true
+                source: manual
+                description: The playbook guide's cadence applied to the account's stage and hours
+                schema:
+                  type: array
+                  minItems: 1
+                  items:
+                    type: object
+                    additionalProperties: false
+                    required: [kind, count, per, description]
+                    properties:
+                      kind: { type: string, enum: [article, dense_post, short_post, reply] }
+                      count: { type: integer, minimum: 1 }
+                      per: { type: string, enum: [day, week] }
+                      description: { type: string, minLength: 1 }
+              - name: rationale
+                required: true
+                source: manual
+                description: Stage, hours the cadence needs and what was cut, in at most 3 sentences
+                schema: { type: string, minLength: 1 }
+          - id: cadence_confirmed
+            title: Approved cadence
+            kind: confirm
+            final: true
+            inputs:
+              - name: slots
+                required: true
+                schema: { type: array }
+                source: { node_id: cadence, field: output.slots }
+              - name: rationale
+                required: true
+                schema: { type: string }
+                source: { node_id: cadence, field: output.rationale }
+
+  # Every tool reads the caller's actor from `x_actor`: `actor_id` is a key the
+  # platform drops from caller-supplied context.
+  Cases:
+    type: tool
+    properties:
+      name: x-cases
+      type: naturali
+      description: The person's playbook cases (profile, x-growth)
+      actions:
+        - list-playbook-cases
+        - get-playbook-case
+        - get-playbook-case-missing
+        - write-playbook-case-inputs
+        - confirm-playbook-case-node
+        - run-playbook-case-node
+      preset_parameters:
+        actor_id: "{{context:x_actor}}"
+
+  Posts:
+    type: tool
+    properties:
+      name: x-posts
+      type: naturali
+      description: The person's published X posts, articles and analytics exports
+      actions: [list-documents, search-knowledge]
+      preset_parameters:
+        path_prefix: "/x/{{context:x_actor}}/"
+        document_paths: ["/x/{{context:x_actor}}/"]
+        include_memories: false
+
+  Guide:
+    type: tool
+    properties:
+      name: x-guide
+      type: naturali
+      description: The X growth playbook guide
+      actions: [list-documents, search-knowledge]
+      preset_parameters:
+        path_prefix: /playbooks/x-growth/
+        document_paths: [/playbooks/x-growth/]
+        include_memories: false
+
+  # Not confined to the caller's path: any connected person can write anywhere.
+  Documents:
+    type: tool
+    properties:
+      name: x-documents
+      type: naturali
+      description: Read and save documents
+      actions: [get-document, create-document, update-document]
+
+  Server:
+    type: mcp_server
+    properties:
+      name: x-growth
+      title: X growth
+      tool_mode: list
+      tools:
+        - { tool_id: { ref: Cases }, action: list-playbook-cases, name: list_my_cases }
+        - { tool_id: { ref: Cases }, action: get-playbook-case, name: get_my_case }
+        - { tool_id: { ref: Cases }, action: get-playbook-case-missing, name: get_case_missing }
+        - { tool_id: { ref: Cases }, action: write-playbook-case-inputs, name: write_case_inputs }
+        - { tool_id: { ref: Cases }, action: confirm-playbook-case-node, name: confirm_case_node }
+        - { tool_id: { ref: Cases }, action: run-playbook-case-node, name: run_case_node }
+        - { tool_id: { ref: Posts }, action: list-documents, name: list_my_posts }
+        - { tool_id: { ref: Posts }, action: search-knowledge, name: search_my_posts }
+        - { tool_id: { ref: Guide }, action: list-documents, name: list_playbook_guide }
+        - { tool_id: { ref: Guide }, action: search-knowledge, name: search_playbook_guide }
+        - { tool_id: { ref: Documents }, action: get-document, name: get_document }
+        - { tool_id: { ref: Documents }, action: create-document, name: save_post }
+        - { tool_id: { ref: Documents }, action: update-document, name: update_post }
+      auth:
+        type: oauth
+        mode: allowlist
+        allowlist:
+          - email: { param: OwnerEmail }
+            context:
+              x_actor: { ref: Owner }
+      instructions: |-
+        Growth system for the person's X account. Their data lives in two playbook cases: `profile` (themes) and `x-growth` (themes, cadence). The playbook guide holds the system's growth rules.
+
+        When the person asks for today's post ("recomende o post do dia"):
+        1. list_my_cases, then get_my_case on the x-growth case: themes and cadence are the outputs of its `themes` and `cadence_confirmed` nodes. Note the case's actor_id. If `cadence_confirmed` is not done, settle the cadence first (below).
+        2. list_my_posts: posts and articles end in YYYY-MM-DD-<slug>.md. Read the last 7 days with get_document.
+        3. Analytics live under /x/<actor_id>/analytics/ as X's own CSV exports: content-<from>-<to>.csv (one row per post and reply) and overview-<from>-<to>.csv (one row per day). Read the latest of each. If none ends yesterday or later, ask the person to export both from X (Analytics → Content and Overview, download CSV) and attach them; the recommendation can go on without them, saying so.
+        4. list_playbook_guide, then get_document on each guide: apply its rules, never invent your own.
+        5. Decide what today still owes the cadence: this week's article, today's dense post, the short posts. Pick the dense post's theme by which theme has gone longest without one; cut short posts from this week's article or today's dense post. Use the analytics to say which formats, themes and replies earned impressions, engagements and follows; never call a post the best on fewer than a week of data.
+        6. Recommend each slot with its theme, the angle and two or three opening lines, and say why. Then draft with the person in the voice of their recent posts. Posts are in English unless they ask otherwise; talk to them in their language.
+
+        When the person attaches an analytics export, save_post it unchanged: path /x/<actor_id>/analytics/<content|overview>-<from>-<to>.csv with the period's first and last dates, title, chunk_strategy whole, tags {network: x, kind: analytics_content|analytics_overview, actor_id}, metadata {period_from, period_to, exported_at}.
+
+        When the person says a text is published, save_post it: path /x/<actor_id>/posts/YYYY-MM-DD-<slug>.md (articles under /articles/), title, tags {network: x, kind: post|article, actor_id}, metadata {posted_at: YYYY-MM-DD}, chunk_strategy whole for a post, size 2000 with overlap 200 for an article.
+
+        Cadence: the person writes `stage` (followers, weekly_hours); you write `cadence` (slots, rationale) by applying the guide to that stage with write_case_inputs and wait: true, then show it and confirm_case_node `cadence_confirmed` only on the person's approval. Update `stage` when the person's follower count crosses a stage boundary in the guide.
+
+outputs:
+  McpServerUrl: { ref_attr: Server.url }
+  OwnerActorId: { ref: Owner }
