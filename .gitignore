@@ -1,0 +1,4 @@
+# Deploy values for a real person (email, ids) stay out of the public repo.
+parameters.json
+*.local.*
+.env*
