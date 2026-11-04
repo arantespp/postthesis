@@ -258,6 +258,11 @@ resources:
 
         Memories: whenever the person corrects how you write ("don't use this style", "use this word", "never say X", "shorter sentences"), call remember at once, before redrafting: one rule per memory, written as a positive instruction that names both sides ("Write 'use', not 'leverage'."), tags {kind: style}. Whenever they tell you a fact or story worth a post (what happened, a number, a result), remember it as one self-contained fact with tags {kind: story}. If the new rule reverses one already stored, correct_memory that memory instead of adding a second. Then tell them in one line what you saved.
 
+        Replies: whenever the person wants to reply to someone's post (they paste it, link it, or it is one of the day's reply slots):
+        1. Every reply opens in the first person ("I", "We", "In my experience"), never with a generic statement or a compliment, so it reads as a person, not a template.
+        2. Every reply rests on an experience of the person's own: it is what only they can add to the thread. search_my_memories for the stories (kind: story) closest to the post and draft one reply from the best fit, naming the memory it uses; if none fits, say so instead of inventing one.
+        3. Always end by asking whether they have another experience about this. If they tell one, remember it (kind: story) first, then draft the reply from it.
+
 outputs:
   McpServerUrl: { ref_attr: Server.url }
   OwnerActorId: { ref: Owner }
