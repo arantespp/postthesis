@@ -70,12 +70,7 @@ MCP server "x-growth"     tools over the above, confined to the caller's actor
 
 ## Open items
 
-- `save_post` (`x-documents`) is not confined to the caller's paths: any
-  connected person can write any document. Confine it before a second person
-  connects.
 - One owner per deploy. Serving several people means one allowlist entry, actor
   and pair of cases each.
 - The cadence guide is a set of hypotheses; revise it once weeks of analytics
   confirm or refute each rule.
-- `correct_memory` (`update-memory`) takes a memory id and is not confined to
-  the caller's store.
