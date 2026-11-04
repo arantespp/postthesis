@@ -22,6 +22,8 @@ documents                 /x/<actor>/posts/       what the person published
                           /x/<actor>/analytics/   X's own CSV exports
                           /playbooks/x-growth/    the growth guide (not in this repo)
 
+memory store (per person) style rules and stories the person taught the assistant
+
 MCP server "x-growth"     tools over the above, confined to the caller's actor
 ```
 
@@ -34,6 +36,10 @@ MCP server "x-growth"     tools over the above, confined to the caller's actor
 - **The guide is the product.** The cadence rules per account stage, validated
   against analytics, live in the project's documents, not here.
   [`guide/example-cadence.md`](guide/example-cadence.md) shows their shape.
+- **Corrections become memories.** When the person corrects a draft ("use this
+  word, not that one"), the assistant stores the rule in their memory store
+  (`kind: style`) and follows every stored rule in later drafts; facts and
+  stories they tell become `kind: story` memories, the material for posts.
 - **The assistant is the agent.** No agent runs on naturali: the MCP server's
   `instructions` teach the connected assistant the daily-post procedure.
 
@@ -71,4 +77,5 @@ MCP server "x-growth"     tools over the above, confined to the caller's actor
   and pair of cases each.
 - The cadence guide is a set of hypotheses; revise it once weeks of analytics
   confirm or refute each rule.
-- Memories about the person (projects, role, voice) are not stored yet.
+- `correct_memory` (`update-memory`) takes a memory id and is not confined to
+  the caller's store.
