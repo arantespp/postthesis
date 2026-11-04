@@ -159,7 +159,7 @@ resources:
       name: x-posts
       type: naturali
       description: The person's published X posts, articles and analytics exports
-      actions: [list-documents, search-knowledge]
+      actions: [list-documents, search-knowledge, get-document, create-document, update-document]
       preset_parameters:
         path_prefix: "/x/{{context:x_actor}}/"
         document_paths: ["/x/{{context:x_actor}}/"]
@@ -171,20 +171,11 @@ resources:
       name: x-guide
       type: naturali
       description: The X growth playbook guide
-      actions: [list-documents, search-knowledge]
+      actions: [list-documents, search-knowledge, get-document]
       preset_parameters:
         path_prefix: /playbooks/x-growth/
         document_paths: [/playbooks/x-growth/]
         include_memories: false
-
-  # Not confined to the caller's path: any connected person can write anywhere.
-  Documents:
-    type: tool
-    properties:
-      name: x-documents
-      type: naturali
-      description: Read and save documents
-      actions: [get-document, create-document, update-document]
 
   Memories:
     type: memory_store
@@ -223,9 +214,10 @@ resources:
         - { tool_id: { ref: Posts }, action: search-knowledge, name: search_my_posts }
         - { tool_id: { ref: Guide }, action: list-documents, name: list_playbook_guide }
         - { tool_id: { ref: Guide }, action: search-knowledge, name: search_playbook_guide }
-        - { tool_id: { ref: Documents }, action: get-document, name: get_document }
-        - { tool_id: { ref: Documents }, action: create-document, name: save_post }
-        - { tool_id: { ref: Documents }, action: update-document, name: update_post }
+        - { tool_id: { ref: Guide }, action: get-document, name: get_guide_document }
+        - { tool_id: { ref: Posts }, action: get-document, name: get_document }
+        - { tool_id: { ref: Posts }, action: create-document, name: save_post }
+        - { tool_id: { ref: Posts }, action: update-document, name: update_post }
         - { tool_id: { ref: MemoryTool }, action: create-memory, name: remember }
         - { tool_id: { ref: MemoryTool }, action: list-memories, name: list_my_memories }
         - { tool_id: { ref: MemoryTool }, action: search-knowledge, name: search_my_memories }
@@ -245,7 +237,7 @@ resources:
         1. list_my_cases, then get_my_case on the x-growth case: themes and cadence are the outputs of its `themes` and `cadence_confirmed` nodes. Note the case's actor_id. If `cadence_confirmed` is not done, settle the cadence first (below).
         2. list_my_posts: posts and articles end in YYYY-MM-DD-<slug>.md. Read the last 7 days with get_document.
         3. Analytics live under /x/<actor_id>/analytics/ as X's own CSV exports: content-<from>-<to>.csv (one row per post and reply) and overview-<from>-<to>.csv (one row per day). Read the latest of each. If none ends yesterday or later, ask the person to export both from X (Analytics → Content and Overview, download CSV) and attach them; the recommendation can go on without them, saying so.
-        4. list_playbook_guide, then get_document on each guide: apply its rules, never invent your own.
+        4. list_playbook_guide, then get_guide_document on each guide: apply its rules, never invent your own.
         5. Decide what today still owes the cadence: this week's article, today's dense post, the short posts. Pick the dense post's theme by which theme has gone longest without one; short posts are any of: a repost of this week's article with a comment, an excerpt of today's dense post, or a short opinion on a theme; at most one a day comes from the article. Use the analytics to say which formats, themes and replies earned impressions, engagements and follows; never call a post the best on fewer than a week of data.
         6. list_my_memories: the person's style rules (tags kind: style) and stories (kind: story). Every draft follows every style rule; use stories as the material for posts, and ask for one only when none fits.
         7. Recommend each slot with its theme, the angle and two or three opening lines, and say why. Then draft with the person in the voice of their recent posts. Posts are in English unless they ask otherwise; talk to them in their language.
