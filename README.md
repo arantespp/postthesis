@@ -5,7 +5,8 @@ publish (cadence) and what you published (posts, analytics), and an assistant
 such as Claude reads it all over MCP to recommend and draft today's post.
 
 It runs on [naturali](https://naturali.ai): playbooks hold the person's state,
-documents hold their posts and the growth guide, and an MCP server exposes both.
+documents hold their posts and the growth guide, and an MCP server exposes the
+person's data; only the agent reads the guide.
 X is the first network; each new network is one more playbook reading the same
 `profile`.
 
@@ -24,7 +25,7 @@ documents                 /x/<actor>/posts/       what the person published
 
 memory store (per person) style rules and stories the person taught the assistant
 
-MCP server "x-growth"     tools over the above, confined to the caller's actor
+MCP server "x-growth"     tools over the above except the guide, confined to the caller's actor
 ```
 
 - **One case per person per playbook.** Each person is an actor; their cases
@@ -40,8 +41,9 @@ MCP server "x-growth"     tools over the above, confined to the caller's actor
   word, not that one"), the assistant stores the rule in their memory store
   (`kind: style`) and follows every stored rule in later drafts; facts and
   stories they tell become `kind: story` memories, the material for posts.
-- **The assistant is the agent.** No agent runs on naturali: the MCP server's
-  `instructions` teach the connected assistant the daily-post procedure.
+- **The guide stays with the agent.** The MCP server exposes the person's data,
+  never the guide; the X growth agent (`skills/x-growth/SKILL.md`) is the only
+  reader of `x-guide` and the only writer of a recommended cadence.
 
 ## Deploy
 

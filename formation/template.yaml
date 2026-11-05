@@ -165,6 +165,7 @@ resources:
         document_paths: ["/x/{{context:x_actor}}/"]
         include_memories: false
 
+  # The agent's only: no MCP server lists it, so no connected client reads the guide.
   Guide:
     type: tool
     properties:
@@ -212,9 +213,6 @@ resources:
         - { tool_id: { ref: Cases }, action: run-playbook-case-node, name: run_case_node }
         - { tool_id: { ref: Posts }, action: list-documents, name: list_my_posts }
         - { tool_id: { ref: Posts }, action: search-knowledge, name: search_my_posts }
-        - { tool_id: { ref: Guide }, action: list-documents, name: list_playbook_guide }
-        - { tool_id: { ref: Guide }, action: search-knowledge, name: search_playbook_guide }
-        - { tool_id: { ref: Guide }, action: get-document, name: get_guide_document }
         - { tool_id: { ref: Posts }, action: get-document, name: get_document }
         - { tool_id: { ref: Posts }, action: create-document, name: save_post }
         - { tool_id: { ref: Posts }, action: update-document, name: update_post }
@@ -231,22 +229,21 @@ resources:
               x_actor: { ref: Owner }
               x_memory_store: { ref: Memories }
       instructions: |-
-        Growth system for the person's X account. Their data lives in two playbook cases: `profile` (themes) and `x-growth` (themes, cadence). The playbook guide holds the system's growth rules.
+        Growth system for the person's X account. Their data lives in two playbook cases: `profile` (themes) and `x-growth` (themes, cadence). The growth rules are not on this server: the approved cadence is how they apply to this person.
 
         When the person asks for today's post ("recomende o post do dia"):
         1. list_my_cases, then get_my_case on the x-growth case: themes and cadence are the outputs of its `themes` and `cadence_confirmed` nodes. Note the case's actor_id. If `cadence_confirmed` is not done, settle the cadence first (below).
         2. list_my_posts: posts and articles end in YYYY-MM-DD-<slug>.md. Read the last 7 days with get_document.
         3. Analytics live under /x/<actor_id>/analytics/ as X's own CSV exports: content-<from>-<to>.csv (one row per post and reply) and overview-<from>-<to>.csv (one row per day). Read the latest of each. If none ends yesterday or later, ask the person to export both from X (Analytics → Content and Overview, download CSV) and attach them; the recommendation can go on without them, saying so.
-        4. list_playbook_guide, then get_guide_document on each guide: apply its rules, never invent your own.
-        5. Decide what today still owes the cadence: this week's article, today's dense post, the short posts. Pick the dense post's theme by which theme has gone longest without one; short posts are any of: a repost of this week's article with a comment, an excerpt of today's dense post, or a short opinion on a theme; at most one a day comes from the article. Use the analytics to say which formats, themes and replies earned impressions, engagements and follows; never call a post the best on fewer than a week of data.
-        6. list_my_memories: the person's style rules (tags kind: style) and stories (kind: story). Every draft follows every style rule; use stories as the material for posts, and ask for one only when none fits.
-        7. Recommend each slot with its theme, the angle and two or three opening lines, and say why. Then draft with the person in the voice of their recent posts. Posts are in English unless they ask otherwise; talk to them in their language.
+        4. Decide what today still owes the approved cadence, following each slot's description. Use the analytics to say which formats, themes and replies earned impressions, engagements and follows; never call a post the best on fewer than a week of data.
+        5. list_my_memories: the person's style rules (tags kind: style) and stories (kind: story). Every draft follows every style rule; use stories as the material for posts, and ask for one only when none fits.
+        6. Recommend each slot with its theme, the angle and two or three opening lines, and say why. Then draft with the person in the voice of their recent posts. Posts are in English unless they ask otherwise; talk to them in their language.
 
         When the person attaches an analytics export, save_post it unchanged: path /x/<actor_id>/analytics/<content|overview>-<from>-<to>.csv with the period's first and last dates, title, chunk_strategy whole, tags {network: x, kind: analytics_content|analytics_overview, actor_id}, metadata {period_from, period_to, exported_at}. Then fill url and post_id on every saved post missing them, from the export's Post Link and Post id, matching the post by its opening text; update_post with the whole metadata, since it replaces it.
 
         When the person says a text is published, save_post it: path /x/<actor_id>/posts/YYYY-MM-DD-<slug>.md (articles under /articles/), title, tags {network: x, kind: post|article, actor_id}, metadata {posted_at: YYYY-MM-DD, url, post_id}, chunk_strategy whole for a post, size 2000 with overlap 200 for an article. url is the post's link on X (https://x.com/<handle>/status/<post_id>); ask for it if the person did not give it, and save without it rather than wait.
 
-        Cadence: the person writes `stage` (followers, weekly_hours); you write `cadence` (slots, rationale) by applying the guide to that stage with write_case_inputs and wait: true, then show it and confirm_case_node `cadence_confirmed` only on the person's approval. Update `stage` when the person's follower count crosses a stage boundary in the guide.
+        Cadence: the person writes `stage` (followers, weekly_hours) and approves `cadence_confirmed` with confirm_case_node. Never write `cadence` yourself: it applies the growth rules, which only the X growth agent holds. If it is missing or the person's stage changed, say the agent recommends it.
 
         Memories: whenever the person corrects how you write ("don't use this style", "use this word", "never say X", "shorter sentences"), call remember at once, before redrafting: one rule per memory, written as a positive instruction that names both sides ("Write 'use', not 'leverage'."), tags {kind: style}. Whenever they tell you a fact or story worth a post (what happened, a number, a result), remember it as one self-contained fact with tags {kind: story}. If the new rule reverses one already stored, correct_memory that memory instead of adding a second. Then tell them in one line what you saved.
 
