@@ -2,7 +2,7 @@
 
 This file shows the shape of a guide. It is not the guide Postthesis runs on:
 the validated rules are kept out of this repository, in the project's documents
-under `/playbooks/x-growth/`, where the MCP server's `x-guide` tool reads them.
+under `/playbooks/x-growth/`, where only the agent's `x-guide` tool reads them.
 
 ## Principles
 
