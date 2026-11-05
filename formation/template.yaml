@@ -103,7 +103,7 @@ resources:
               - name: slots
                 required: true
                 source: manual
-                description: The playbook guide's cadence applied to the account's stage and hours
+                description: "The guide's cadence for the account's stage and hours: kind, count and a name per slot, never how to write it"
                 schema:
                   type: array
                   minItems: 1
