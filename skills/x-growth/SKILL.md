@@ -53,9 +53,10 @@ When the person wants to reply to a post (pasted, linked, or one of the day's re
 ## Cadence
 
 - The person gives `stage` (followers, weekly hours). You write `cadence` (slots, rationale) by applying the guide to that stage, with `write_case_inputs` and `wait: true`.
+- The cadence belongs to the person, the method to the product: each slot's `description` names what it is ("Post denso do dia"), never how to write it, and the `rationale` speaks only of their stage, hours and what was cut.
 - Show it and `confirm_case_node` on `cadence_confirmed` only after the person approves it.
 - Update `stage` when their follower count crosses a stage boundary in the guide, and propose the new cadence.
-- When a newer guide changes what the approved cadence says, propose the updated cadence; the approved one stands until they approve the new one.
+- When a newer guide changes the slots, counts or cuts for their stage, propose the updated cadence; the approved one stands until they approve the new one.
 
 ## Saving what the person publishes
 
